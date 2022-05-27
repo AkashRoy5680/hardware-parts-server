@@ -20,6 +20,7 @@ async function run(){
     const serviceCollection=client.db("parts_hub").collection("services");
     const reviewCollection=client.db("parts_hub").collection("reviews");
     const orderCollection=client.db("parts_hub").collection("orders");
+    const profileCollection=client.db("parts_hub").collection("profile");
 
     //Load All Services
     app.get("/service",async(req,res)=>{
@@ -44,7 +45,7 @@ async function run(){
         res.send(orders);
     })
 
-    
+    //Load user Review
     app.get("/review",async(req,res)=>{
         const query={};
         const cursor=reviewCollection.find(query);
@@ -65,7 +66,14 @@ async function run(){
         const newOrder=req.body;
         const result=await orderCollection.insertOne(newOrder);
         res.send(result);
-    })
+    });
+
+    //POST method to update userProfile
+    app.post("/profile",async(req,res)=>{
+        const newProfile=req.body;
+        const result=await profileCollection.insertOne(newProfile);
+        res.send(result);
+    });
 
     }
     
