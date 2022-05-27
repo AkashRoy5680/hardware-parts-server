@@ -4,6 +4,7 @@ require("dotenv").config();
 const port=process.env.PORT||5000;
 const app=express();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 //middleware
 app.use(cors())
@@ -21,6 +22,7 @@ async function run(){
     const reviewCollection=client.db("parts_hub").collection("reviews");
     const orderCollection=client.db("parts_hub").collection("orders");
     const profileCollection=client.db("parts_hub").collection("profile");
+    const userCollection=client.db("parts_hub").collection("users");
 
     //Load All Services
     app.get("/service",async(req,res)=>{
@@ -39,10 +41,18 @@ async function run(){
     });
     //Filtering Email Orders
     app.get("/order",async(req,res)=>{
-        const email=req.query.userEmail;
-        const query={email:email};
+        const email=req.query.email;
+        const query={userEmail:email};
         const orders=await orderCollection.find(query).toArray();
         res.send(orders);
+    });
+
+    //Email filtering for payment(specific order payment)
+    app.get("/order/:id",async(req,res)=>{
+        const id=req.params.id;
+        const query={_id: ObjectId(id)};
+        const order=await orderCollection.findOne(query);
+        res.send(order);
     })
 
     //Load user Review
@@ -52,6 +62,12 @@ async function run(){
         const reviews=await cursor.toArray();
         res.send(reviews);
     }); 
+
+    //Load all users
+    app.get("/user",async(req,res)=>{
+        const user=await userCollection.find().toArray();
+        res.send(user);
+    })
       
     //POST method to add new review and send it to server
 
@@ -68,12 +84,23 @@ async function run(){
         res.send(result);
     });
 
-    //POST method to update userProfile
-    app.post("/profile",async(req,res)=>{
-        const newProfile=req.body;
-        const result=await profileCollection.insertOne(newProfile);
+    //PUT method to insert or update userProfile
+    app.put("/profile/:email",async(req,res)=>{
+        const email=req.params.email;
+        const filter={email:email};
+        const user=req.body;
+        const options={upsert:true};
+        const updatedDoc={
+            $set:user,
+        }
+        const result=await profileCollection.updateOne(filter,updatedDoc,options);
         res.send(result);
     });
+
+    //Payment API
+    app.post("/create-payment-intent", async (req, res) => {
+    const { items } = req.body;
+    }
 
     }
     
