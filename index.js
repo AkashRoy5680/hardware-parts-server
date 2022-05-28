@@ -23,6 +23,7 @@ async function run(){
     const orderCollection=client.db("parts_hub").collection("orders");
     const profileCollection=client.db("parts_hub").collection("profile");
     const userCollection=client.db("parts_hub").collection("users");
+    const paymentCollection=client.db("parts_hub").collection("payment");
 
     //Load All Services
     app.get("/service",async(req,res)=>{
@@ -68,12 +69,36 @@ async function run(){
         const user=await userCollection.find().toArray();
         res.send(user);
     })
+
+    //Make an user Admin
+    app.get("/admin/:email",async(req,res)=>{
+        const email=req.params.email;
+        const user=await userCollection.findOne({email:email});
+        const isAdmin=user.role==="admin";
+        res.send({admin:isAdmin});
+    });
+
+     //Delete an user from Admin
+     app.delete("/admin/:email",async(req,res)=>{
+        const email=req.params.email;
+        const user=await userCollection.deleteOne({email:email});
+        const isAdmin=user.role==="admin";
+        res.send({role:""});
+    });
       
     //POST method to add new review and send it to server
 
     app.post("/review", async (req, res) => {
         const newItem =req.body;
         const result = await reviewCollection.insertOne(newItem);
+        res.send(result);
+    });
+
+    //POST method to add new product and send it to server
+
+    app.post("/product", async (req, res) => {
+        const newItem =req.body;
+        const result = await serviceCollection.insertOne(newItem);
         res.send(result);
     });
 
@@ -97,10 +122,58 @@ async function run(){
         res.send(result);
     });
 
+    //PUT method to insert or update user
+      app.put("/user/:email",async(req,res)=>{
+        const email=req.params.email;
+        const filter={email:email};
+        const user=req.body;
+        const options={upsert:true};
+        const updatedDoc={
+            $set:user,
+        }
+        const result=await userCollection.updateOne(filter,updatedDoc,options);
+        res.send(result);
+    });
+
+     //Make user Admin
+     app.put("/user/admin/:email",async(req,res)=>{
+        const email=req.params.email;
+        const filter={email:email};
+        const updatedDoc={
+            $set:{role:"admin"},
+        }
+        const result=await userCollection.updateOne(filter,updatedDoc);
+        res.send(result);
+    });
+
     //Payment API
     app.post("/create-payment-intent", async (req, res) => {
-    const { items } = req.body;
-    }
+    const service = req.body;
+    const price=service.price;
+    const amount=price*100;
+    const paymentIntent = await stripe.paymentIntents.create({
+    amount:amount,
+    currency:"eur",
+    payment_method_types:["card"]
+    });
+    res.send({clientSecret:paymentIntent.client_secret})
+    });
+
+    //Payment Updated using method PATCH
+    app.patch("/order/:id",async(req,res)=>{
+        const id=req.params.id;
+        const payment=req.body;
+        const filter={_id:ObjectId(id)};
+        const updatedDoc={
+            $set:{
+                paid:true,
+                transactionId:payment.transactionId
+            }
+        }
+    const updatedOrder=await orderCollection.updateOne(filter,updatedDoc);
+    const result=await paymentCollection.insertOne(payment);
+    res.send(updatedDoc)
+    })
 
     }
     
