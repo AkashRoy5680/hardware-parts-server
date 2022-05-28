@@ -184,7 +184,7 @@ async function run(){
 
 run();
 
-app.get("/testing",(req,res)=>{
+app.get("/",(req,res)=>{
     res.send("Server is Running");
 });
 
