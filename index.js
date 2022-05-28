@@ -184,9 +184,10 @@ async function run(){
 
 run();
 
-app.get("/",(req,res)=>{
+app.get("/checking",(req,res)=>{
     res.send("Server is Running");
 });
+
 
 app.listen(port,()=>{
     console.log("Listening from port",port);
